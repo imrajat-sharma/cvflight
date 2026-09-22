@@ -1,0 +1,12 @@
+import { db } from '@/db';
+import { resumes, resumeVersions } from '@/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
+import { ResumeData, sampleResume } from '../resume';
+export async function listResumes(owner:string){return db.select().from(resumes).where(eq(resumes.owner,owner)).orderBy(desc(resumes.updatedAt));}
+export async function createResume(owner:string,name='Software Engineer',data:ResumeData=sampleResume){const list=await listResumes(owner);if(list.length>=50)throw new Error('Workspace limit reached (50 resumes). Export or delete an older resume first.');const [resume]=await db.insert(resumes).values({id:crypto.randomUUID(),owner,name,data,template:'classic'}).returning();return resume;}
+export async function getResume(owner:string,id:string){const [resume]=await db.select().from(resumes).where(and(eq(resumes.id,id),eq(resumes.owner,owner)));if(!resume)throw new Error('Resume not found in this workspace.');return resume;}
+export async function saveResume(owner:string,id:string,patch:{name:string;data:ResumeData;template:string;tex:string|null;originalTex?:string|null}){await getResume(owner,id);const [resume]=await db.update(resumes).set({...patch,updatedAt:new Date()}).where(and(eq(resumes.id,id),eq(resumes.owner,owner))).returning();return resume;}
+export async function saveVersion(owner:string,id:string,name:string){const r=await getResume(owner,id);const [version]=await db.insert(resumeVersions).values({id:crypto.randomUUID(),resumeId:id,name,data:r.data,template:r.template,tex:r.tex,originalTex:r.originalTex}).returning();return version;}
+export async function listVersions(owner:string,id:string){await getResume(owner,id);return db.select().from(resumeVersions).where(eq(resumeVersions.resumeId,id)).orderBy(desc(resumeVersions.createdAt)).limit(100);}
+export async function restoreVersion(owner:string,id:string,versionId:string){const r=await getResume(owner,id);const [v]=await db.select().from(resumeVersions).where(and(eq(resumeVersions.id,versionId),eq(resumeVersions.resumeId,id)));if(!v)throw new Error('Version not found.');await saveVersion(owner,id,'Before restoring '+v.name);return saveResume(owner,id,{name:r.name,data:v.data,template:v.template,tex:v.tex,originalTex:v.originalTex});}
+export async function deleteResume(owner:string,id:string){await getResume(owner,id);await db.delete(resumes).where(and(eq(resumes.id,id),eq(resumes.owner,owner)));}

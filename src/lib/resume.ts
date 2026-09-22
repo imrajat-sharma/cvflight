@@ -1,0 +1,23 @@
+import { z } from 'zod';
+
+export const sectionKeys = ['personal', 'summary', 'experience', 'education', 'projects', 'skills', 'certifications', 'achievements', 'custom'] as const;
+export type SectionKey = typeof sectionKeys[number];
+export const entrySchema = z.object({ id: z.string(), title: z.string().max(500), subtitle: z.string().max(500), location: z.string().max(200), startDate: z.string().max(100), endDate: z.string().max(100), bullets: z.array(z.string().max(3000)).max(30), technologies: z.string().max(1000), url: z.string().max(2000) });
+export type Entry = z.infer<typeof entrySchema>;
+export const resumeSchema = z.object({
+  personal: z.object({ firstName: z.string().max(100), lastName: z.string().max(100), title: z.string().max(200), email: z.string().max(200), phone: z.string().max(100), location: z.string().max(200), linkedin: z.string().max(2000), github: z.string().max(2000), website: z.string().max(2000) }),
+  summary: z.string().max(10000), experience: z.array(entrySchema).max(30), education: z.array(entrySchema).max(20), projects: z.array(entrySchema).max(30), skills: z.string().max(10000), certifications: z.array(entrySchema).max(30), achievements: z.array(entrySchema).max(30), custom: z.array(entrySchema).max(30), sectionOrder: z.array(z.enum(sectionKeys)).length(sectionKeys.length).refine(order=>new Set(order).size===sectionKeys.length,'Each resume section must appear exactly once.'),
+});
+export type ResumeData = z.infer<typeof resumeSchema>;
+export const sectionLabels: Record<SectionKey, string> = {personal:'Personal information', summary:'Professional summary', experience:'Work experience', education:'Education', projects:'Projects', skills:'Skills', certifications:'Certifications', achievements:'Achievements', custom:'Custom sections'};
+export const emptyEntry = (): Entry => ({ id: crypto.randomUUID(), title:'', subtitle:'', location:'', startDate:'', endDate:'', bullets:[], technologies:'', url:'' });
+export const sampleResume: ResumeData = {
+ personal:{firstName:'Alex',lastName:'Morgan',title:'Software Engineer',email:'alex.morgan@email.com',phone:'+1 (415) 555-0123',location:'San Francisco, CA',linkedin:'linkedin.com/in/alexmorgan',github:'github.com/alexmorgan',website:'alexmorgan.dev'},
+ summary:'Software engineer with 5+ years of experience building scalable web applications and thoughtful user experiences. Passionate about clean code, collaborative problem-solving, and turning complex challenges into simple, reliable solutions.',
+ experience:[{id:'exp-1',title:'Senior Software Engineer',subtitle:'Linear',location:'San Francisco, CA',startDate:'2022',endDate:'Present',bullets:['Led development of core product features using React, TypeScript, and Node.js, serving 50,000+ active users.','Improved application performance by 35% through code splitting, caching, and database query optimization.','Collaborated with cross-functional teams to ship high-quality features in two-week release cycles.'],technologies:'',url:''},{id:'exp-2',title:'Software Engineer',subtitle:'Vercel',location:'Remote',startDate:'2020',endDate:'2022',bullets:['Built and maintained full-stack applications using Next.js, React, and PostgreSQL.','Developed reusable component libraries that reduced development time by 25%.','Implemented CI/CD pipelines and automated testing to improve release reliability.'],technologies:'',url:''}],
+ education:[{id:'edu-1',title:'B.S. in Computer Science',subtitle:'University of California, Berkeley',location:'Berkeley, CA',startDate:'2016',endDate:'2020',bullets:['Relevant coursework: Data Structures, Algorithms, Database Systems'],technologies:'',url:''}],
+ projects:[{id:'proj-1',title:'DevFlow',subtitle:'Open-source developer productivity tool',location:'',startDate:'',endDate:'',bullets:['Built a collaborative task management platform with real-time updates and GitHub integration.'],technologies:'Next.js, TypeScript, PostgreSQL, Tailwind CSS',url:'github.com/alexmorgan/devflow'}],
+ skills:'Languages: JavaScript, TypeScript, Python, SQL\nFrontend: React, Next.js, HTML, CSS, Tailwind CSS\nBackend & tools: Node.js, PostgreSQL, Redis, Git, Docker, AWS', certifications:[],achievements:[],custom:[],sectionOrder:[...sectionKeys]
+};
+export const blankResume = (): ResumeData => ({personal:{firstName:'',lastName:'',title:'',email:'',phone:'',location:'',linkedin:'',github:'',website:''},summary:'',experience:[],education:[],projects:[],skills:'',certifications:[],achievements:[],custom:[],sectionOrder:[...sectionKeys]});
+export type SavedResume = {id:string;name:string;data:ResumeData;template:string;tex:string|null;originalTex:string|null;updatedAt:string};
